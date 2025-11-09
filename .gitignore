@@ -1,0 +1,78 @@
+images/
+scenes/
+__pycache__/
+*.pyc
+.env
+
+# Byte-compiled / optimized
+*.pyo
+*.pyd
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Pytest / coverage / caches
+.pytest_cache/
+coverage.xml
+htmlcov/
+.coverage
+nosetests.xml
+*.cover
+*.py,cover
+
+# Mypy
+mypy_cache/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Installer logs
+pip-log.txt
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Model and ML artifacts
+models/*.pth
+models/*.pt
+models/*.h5
+models/*.ckpt
+
+# Ignore model artifacts in other directories too
+*.ckpt
+*.pt
+*.pth
+
+# Secrets and credentials
+credentials.json
+secrets.json
+
+# End of additions
+
