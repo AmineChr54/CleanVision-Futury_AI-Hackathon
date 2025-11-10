@@ -11,13 +11,14 @@ project root, so we add it if needed before importing `frontend.app`.
 
 # Ensure imports work both when executed as a module and as a script.
 try:
-    from frontend.app import CleanVisionApp  # type: ignore
-except ModuleNotFoundError:  # running as a script from inside frontend/
+    # Prefer the local app module in this repository layout
+    from app import CleanVisionApp  # type: ignore
+except ModuleNotFoundError:  # fallback: adjust sys.path when executed from subdirectory
     import sys, os
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
-    from frontend.app import CleanVisionApp  # type: ignore
+    from app import CleanVisionApp  # type: ignore
 
 if __name__ == "__main__":  # pragma: no cover - manual launch convenience
     CleanVisionApp().run()

@@ -1,184 +1,197 @@
-"""Main upload screen with fixed top bar and bottom actions.
+"""Main upload screen (KivyMD version).
 
-Responsible for:
-- Letting user pick or capture an image
-- Showing a helpful robot tip when no image is selected
-- Replacing the tip with the preview and a submit button after upload
-- Providing bottom actions: Browse, Capture, Process
+Reimplemented using KivyMD components for a more professional Material look:
+    - MDToolbar for top navigation with brand logo title and settings icon
+    - MDCard for robot tip and image preview area
+    - MDRaisedButton & MDIconButton variants for actions
+    - RoundImageButton retained for custom circular icon styling (camera capture)
 """
 from __future__ import annotations
 from pathlib import Path
 import os
 import tempfile
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.screenmanager import Screen
-from kivy.uix.label import Label
-from kivy.uix.image import Image
-from kivy.uix.widget import Widget
-from kivy.uix.filechooser import FileChooserIconView
-from kivy.uix.popup import Popup
 from kivy.metrics import dp
-from kivy.core.window import Window
-from kivy.graphics import Color, Rectangle, RoundedRectangle
-from typing import Optional
+from kivy.uix.image import Image
+from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.widget import Widget
+from kivy.uix.popup import Popup
+from kivy.uix.anchorlayout import AnchorLayout
 
-try:
-    # Optional camera support (desktop availability varies)
+
+from kivymd.uix.screen import MDScreen
+from kivymd.toast import toast
+from kivymd.uix.card import MDCard
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.label import MDLabel
+from kivymd.uix.button import MDRaisedButton, MDIconButton
+
+try:  # optional camera
     from plyer import camera as plyer_camera  # type: ignore
 except Exception:
     plyer_camera = None
 
-from frontend.widgets.rounded_button import RoundedButton
-from frontend.widgets.decor import add_rounded_background
-from frontend.theme import palette
+from widgets.round_image_button import RoundImageButton
+from images import get_image_path
+from theme import palette
+from widgets.hover import attach_hover
 
 
-class MainScreen(Screen):
+class TopBar(MDBoxLayout):
+    """Lightweight custom top bar for legacy KivyMD 1.2.0 without MDToolbar availability."""
+    def __init__(self, title: str = "", **kwargs):
+        super().__init__(orientation="horizontal", size_hint=(1, None), height=dp(56), padding=(dp(14), 0), spacing=dp(6), **kwargs)
+        self._title_label = MDLabel(text=title, halign="left", font_style="H6")
+        self.add_widget(self._title_label)
+        self._spacer = Widget()
+        self.add_widget(self._spacer)
+        self._actions_box = MDBoxLayout(orientation="horizontal", size_hint=(None, 1), spacing=dp(4))
+        self.add_widget(self._actions_box)
+
+    @property
+    def title(self) -> str:
+        return self._title_label.text
+
+    @title.setter
+    def title(self, value: str) -> None:
+        self._title_label.text = value
+
+    @property
+    def right_action_items(self):
+        return getattr(self, "_right_items", [])
+
+    @right_action_items.setter
+    def right_action_items(self, items):
+        self._right_items = items or []
+        self._actions_box.clear_widgets()
+        for icon, cb in self._right_items:
+            btn = MDIconButton(icon=icon)
+            btn.bind(on_release=lambda *_: cb())
+            self._actions_box.add_widget(btn)
+
+    def set_title_widget(self, widget: Widget):
+        """Replace the text title with a custom widget (e.g., an Image logo)."""
+        if self._title_label in self.children:
+            self.remove_widget(self._title_label)
+        # Insert at the beginning to keep it on the left
+        self.add_widget(widget, index=len(self.children))
+
+
+class MainScreen(MDScreen):
     name = "main"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # Slightly tighter vertical spacing to pull content closer to the top bar
+        root_layout = MDBoxLayout(orientation="vertical", spacing=dp(6))
 
-        layout = BoxLayout(orientation="vertical", padding=palette.PADDING, spacing=palette.SPACING)
+        # Set screen background to theme window color
+        try:
+            self.md_bg_color = palette.WINDOW_BG
+        except Exception:
+            pass
 
-        # Background image
-        with layout.canvas.before:
-            Color(*palette.WINDOW_BG)
-            self._bg_rect = Rectangle(source=palette.BACKGROUND_IMAGE, pos=layout.pos, size=Window.size)
-
-        Window.bind(size=self._update_bg_rect)
-
-        # --- Top Navigation Bar (fixed) ---------------------------------------
-        nav = BoxLayout(orientation="horizontal", size_hint=(1, None), height=dp(56), padding=(dp(12), 0), spacing=dp(10))
-        with nav.canvas.before:
-            Color(0, 0, 0, 0.25)
-            self._nav_bg = RoundedRectangle(pos=nav.pos, size=nav.size, radius=[dp(12)])
-        nav.bind(pos=self._update_nav_bg, size=self._update_nav_bg)
-
-        # Left: Logo (image if exists, else text)
-        logo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "images", "logo.png")
-        if os.path.exists(logo_path):
-            logo = Image(source=logo_path, size_hint=(None, 1), width=dp(120), allow_stretch=True, keep_ratio=True)
+        # Top bar (custom, avoids missing MDToolbar in deprecated KivyMD 1.2.0)
+        logo_title = get_image_path("logo_title")
+        toolbar = TopBar(title="")
+        if logo_title:
+            logo_widget = Image(source=logo_title, size_hint=(None, None), size=(dp(180), dp(44)), allow_stretch=True, keep_ratio=True)
+            toolbar.set_title_widget(logo_widget)
         else:
-            logo = Label(text="[b]CleanVision[/b]", markup=True, color=palette.TEXT_PRIMARY, size_hint=(None, 1), width=dp(140))
-        nav.add_widget(logo)
+            toolbar.title = "CleanVision"
+        toolbar.right_action_items = [("cog", lambda *_: self.open_settings(None))]
+        root_layout.add_widget(toolbar)
 
-        nav.add_widget(Widget())  # spacer
-
-        # Right: Settings button
-        settings_btn = RoundedButton(text="\u2699", size_hint=(None, 0.8), width=dp(56), bg_color=palette.PRIMARY, radius=palette.BUTTON_RADIUS)
-        settings_btn.bind(on_press=self.open_settings)
-        nav.add_widget(settings_btn)
-        layout.add_widget(nav)
-
-        # Title label
-        self.title_label = Label(
-            text="CLEAN PROCESS",
-            size_hint=(1, 0.09),
-            font_size="26sp",
-            bold=True,
-            color=palette.TEXT_PRIMARY,
-            halign="center",
-            valign="middle",
-            text_size=(Window.width - 40, None),
-        )
-        add_rounded_background(self.title_label, palette.DARK_SURFACE, radius=palette.CARD_RADIUS)
-        layout.add_widget(self.title_label)
-
-        # --- Middle content area (robot tip OR preview) -----------------------
-        middle_area = BoxLayout(orientation="vertical", size_hint=(1, 1))
-        middle_area.add_widget(Widget(size_hint_y=1))
-
-        self.middle_container = BoxLayout(orientation="vertical", size_hint=(1, None), height=dp(360), spacing=dp(10))
-        # Robot tip card
-        self.robot_tip_card = self._build_robot_tip()
-        # Preview card (image + submit under it)
+        # Content area (robot tip or preview) - reduced top padding to shift upward
+        self.content_container = MDBoxLayout(orientation="vertical", padding=(dp(8), dp(4), dp(8), dp(8)), spacing=dp(12))
+        try:
+            self.content_container.md_bg_color = palette.WINDOW_BG
+        except Exception:
+            pass
+        self.robot_tip_card = self._build_robot_tip_card()
         self.preview_card = self._build_preview_card()
-        # Start with tip visible
-        self.middle_container.clear_widgets()
-        self.middle_container.add_widget(self.robot_tip_card)
+        self._show_robot_tip()
+        root_layout.add_widget(self.content_container)
 
-        middle_area.add_widget(self.middle_container)
-        middle_area.add_widget(Widget(size_hint_y=1))
-        layout.add_widget(middle_area)
+        # Bottom action bar (left aligned, flex-like spacing) with window background
+        self.bottom_bar = MDBoxLayout(orientation="horizontal", adaptive_height=True, padding=(dp(16), dp(6)), spacing=dp(20))
+        self.bottom_bar.md_bg_color = palette.WINDOW_BG
+        self._build_bottom_bar()
+        root_layout.add_widget(self.bottom_bar)
 
-        # Result label (hidden until used)
-        self.result_label = Label(text="", size_hint=(1, None), height=dp(80), text_size=(Window.width - 40, None), color=(0.08, 0.08, 0.08, 0), halign="left", valign="top")
-        layout.add_widget(self.result_label)
+        self.add_widget(root_layout)
 
-        # --- Bottom action bar: Browse | Capture | Process ---------------------
-        self.buttons_container = BoxLayout(size_hint=(1, None), height=dp(60), spacing=dp(12))
-        self.browse_button = RoundedButton(text="Browse", bg_color=palette.PRIMARY, radius=palette.BUTTON_RADIUS)
-        self.browse_button.bind(on_press=self.open_file_chooser)
-        self.capture_button = RoundedButton(text="Capture", bg_color=palette.PRIMARY, radius=palette.BUTTON_RADIUS)
-        self.capture_button.bind(on_press=self.capture_image)
-        self.process_button = RoundedButton(text="Process", bg_color=palette.PRIMARY, radius=palette.BUTTON_RADIUS)
-        self.process_button.bind(on_press=self.process_current)
-        self.buttons_container.add_widget(self.browse_button)
-        self.buttons_container.add_widget(self.capture_button)
-        self.buttons_container.add_widget(self.process_button)
-        layout.add_widget(self.buttons_container)
-
-        self.add_widget(layout)
         # Track current image path (None until selected or captured)
         self.current_image_path = None  # type: Optional[Path]
 
-    # --- Canvas/Geometry updates -------------------------------------------------
-    def _update_bg_rect(self, *_):
-        self._bg_rect.pos = self.children[0].pos  # layout
-        self._bg_rect.size = Window.size
+        # Apply hover to toolbar actions (e.g., settings cog) if present
+        try:
+            self._apply_hover_to_toolbar(toolbar)
+        except Exception:
+            pass
 
-    def _update_nav_bg(self, instance, *_):
-        # Keep the rounded background in sync with the nav bar
-        self._nav_bg.pos = instance.pos
-        self._nav_bg.size = instance.size
+    # --- Canvas/Geometry updates -------------------------------------------------
+    # --- Bottom bar construction -----------------------------------------------
+    def _build_bottom_bar(self):
+        # Capture round button (smaller diameter). Prefer dynamically generated inverted icon.
+        camera_icon = get_image_path("camera_inverted") or get_image_path("camera")
+        self.capture_btn = RoundImageButton(icon_path=camera_icon, diameter=56, bg_rgba=palette.PRIMARY, icon_scale=0.5)
+        self.capture_btn.bind(on_release=self.capture_image)
+        self.bottom_bar.add_widget(self._wrap_center(self.capture_btn))
+
+        # Browse button with primary bg and themed text color
+        self.browse_btn = MDRaisedButton(text="Browse", md_bg_color=palette.PRIMARY, text_color=palette.TEXT_PRIMARY)
+        self.browse_btn.bind(on_release=self.open_file_chooser)
+        self.bottom_bar.add_widget(self._wrap_center(self.browse_btn))
+
+        # Hover effects: lighten on hover
+        self._apply_hover_to_primary_button(self.browse_btn)
+        self._apply_hover_to_round(self.capture_btn)
+
+
+    def _wrap_center(self, child):
+        """Wrap a widget so it's vertically centered within the bottom bar.
+
+        Uses AnchorLayout to center on Y regardless of the child's own height.
+        """
+        wrapper = AnchorLayout(anchor_x='left', anchor_y='center', size_hint=(None, None), height=dp(60))
+
+        def _sync_width(*_):
+            # keep wrapper at least the child's width
+            wrapper.width = max(child.width, dp(56))
+
+        child.bind(size=_sync_width)
+        _sync_width()
+        wrapper.add_widget(child)
+        return wrapper
 
     # --- Helpers -----------------------------------------------------------------
     def set_result(self, text: str):
         if text and str(text).strip():
-            self.result_label.text = str(text)
-            col = list(self.result_label.color)
-            col[3] = 1
-            self.result_label.color = tuple(col)
-        else:
-            self.result_label.text = ""
-            col = list(self.result_label.color)
-            col[3] = 0
-            self.result_label.color = tuple(col)
+            toast(str(text))
 
     # --- Actions -----------------------------------------------------------------
     def open_settings(self, _instance):
-        content = BoxLayout(orientation="vertical", padding=dp(12), spacing=dp(8))
-        label = Label(text="Settings coming soon...", color=palette.TEXT_PRIMARY)
-        ok = RoundedButton(text="Close", bg_color=palette.PRIMARY, size_hint=(1, None), height=dp(44))
-        content.add_widget(label)
-        content.add_widget(ok)
-        popup = Popup(title="Settings", content=content, size_hint=(0.5, 0.35))
-        ok.bind(on_press=lambda *_: popup.dismiss())
-        popup.open()
+        toast("Settings dialog coming soon.")
 
     def open_file_chooser(self, _instance):
-        content = BoxLayout(orientation="vertical")
-        file_chooser = FileChooserIconView(filters=["*.png", "*.jpg", "*.jpeg"])
-        buttons_layout = BoxLayout(size_hint=(1, 0.1))
-        cancel_btn = RoundedButton(text="Cancel", bg_color=(0.5, 0.5, 0.5, 1), radius=8)
-        select_btn = RoundedButton(text="Select", bg_color=palette.PRIMARY, radius=8)
-        buttons_layout.add_widget(cancel_btn)
-        buttons_layout.add_widget(select_btn)
-        content.add_widget(file_chooser)
-        content.add_widget(buttons_layout)
-        popup = Popup(title="Object Image", content=content, size_hint=(0.9, 0.9))
+        # Simple MD popup replacement using standard Popup for now.
+        content = MDBoxLayout(orientation="vertical", padding=dp(12), spacing=dp(12))
+        chooser = FileChooserIconView(filters=["*.png", "*.jpg", "*.jpeg"], size_hint=(1, 0.9))
+        btn_row = MDBoxLayout(orientation="horizontal", size_hint=(1, 0.1), spacing=dp(12))
+        cancel = MDRaisedButton(text="Cancel")
+        select = MDRaisedButton(text="Select", md_bg_color=palette.PRIMARY)
+        btn_row.add_widget(cancel)
+        btn_row.add_widget(select)
+        content.add_widget(chooser)
+        content.add_widget(btn_row)
+        popup = Popup(title="Select Image", content=content, size_hint=(0.9, 0.9))
 
-        def select_image(_btn):
-            if file_chooser.selection:
-                self.load_image(file_chooser.selection[0])
+        def _do_select(_):
+            if chooser.selection:
+                self.load_image(chooser.selection[0])
                 popup.dismiss()
-
-        def cancel_selection(_btn):
-            popup.dismiss()
-
-        select_btn.bind(on_press=select_image)
-        cancel_btn.bind(on_press=cancel_selection)
+        select.bind(on_release=_do_select)
+        cancel.bind(on_release=lambda *_: popup.dismiss())
         popup.open()
 
     def load_image(self, file_path: str):
@@ -188,8 +201,8 @@ class MainScreen(Screen):
 
     def clear_image(self, _instance):
         self.current_image_path = None
-        self.set_result("")
         self._show_robot_tip()
+        toast("Image cleared.")
 
     def go_to_results(self, _instance):
         if not self.current_image_path:
@@ -201,11 +214,10 @@ class MainScreen(Screen):
         app.root.get_screen("results").display_inspection_results(str(self.current_image_path))
 
     def process_current(self, _instance):
-        # Right bottom button behavior
-        if self.current_image_path:
-            self.go_to_results(_instance)
-        else:
-            self.set_result("Please select or capture an image first!")
+        if not self.current_image_path:
+            toast("Select or capture an image first.")
+            return
+        self.go_to_results(_instance)
 
     def capture_image(self, _instance):
         # Attempt camera capture; fall back to file chooser
@@ -213,8 +225,8 @@ class MainScreen(Screen):
             self.set_result("Camera not available on this device. Please browse an image.")
             self.open_file_chooser(_instance)
             return
-
-        tmp_file = os.path.join(tempfile.gettempdir(), f"cleanvision_capture.jpg")
+        ################################## give to backend
+        tmp_file = os.path.join(tempfile.gettempdir(), "cleanvision_capture.jpg")
 
         def _on_complete(path):
             # Plyer calls callback with path (may be None on cancel)
@@ -236,84 +248,140 @@ class MainScreen(Screen):
             except Exception as e:
                 self.set_result(f"Camera error: {e}")
 
+
     # --- UI builders ------------------------------------------------------------
-    def _build_robot_tip(self) -> BoxLayout:
-        card = BoxLayout(orientation="vertical", padding=dp(14), spacing=dp(10), size_hint=(1, None), height=dp(260))
-        with card.canvas.before:
-            Color(*palette.SOFT_SURFACE)
-            card._bg = RoundedRectangle(pos=card.pos, size=card.size, radius=[dp(12)])
-        card.bind(pos=lambda *_: self._sync_rect(card), size=lambda *_: self._sync_rect(card))
-
-        # Optional robot image
-        robot_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "images", "robot.png")
-        if os.path.exists(robot_path):
-            robot_img = Image(source=robot_path, size_hint=(1, None), height=dp(120), allow_stretch=True, keep_ratio=True)
+    def _build_robot_tip_card(self):
+        card = MDCard(orientation="vertical", padding=dp(18), size_hint=(1, None), height=dp(300), elevation=0, radius=[dp(18)])
+        card.spacing = dp(12)
+        robot_path = get_image_path("robot")
+        if robot_path:
+            robot_img = Image(source=robot_path, size_hint=(1, None), height=dp(150), allow_stretch=True, keep_ratio=True)
             card.add_widget(robot_img)
-
-        tip_title = Label(text="Hi, I'm your cleaning robot!", size_hint=(1, None), height=dp(28), color=palette.TEXT_PRIMARY, bold=True)
-        tip_body = Label(
-            text="Tip: Tap Browse to pick an image or Capture to take a new one. Then press Process to analyze.",
-            size_hint=(1, 1),
-            color=palette.TEXT_PRIMARY,
-            halign="center",
-            valign="middle",
-        )
-        tip_body.bind(size=lambda *_: setattr(tip_body, "text_size", tip_body.size))
-        card.add_widget(tip_title)
-        card.add_widget(tip_body)
+        title = MDLabel(text="Hi, I'm your cleaning robot!", font_style="H6", halign="center")
+        body = MDLabel(text="Tip: Browse to pick an image or use the camera to capture one, then press Process to analyze.", halign="center", theme_text_color="Secondary")
+        card.add_widget(title)
+        card.add_widget(body)
         return card
 
-    def _build_preview_card(self) -> BoxLayout:
-        card = BoxLayout(orientation="vertical", padding=dp(14), spacing=dp(10), size_hint=(1, None), height=dp(340))
-        with card.canvas.before:
-            Color(1, 1, 1, 0.0)
-            card._bg = RoundedRectangle(pos=card.pos, size=card.size, radius=[dp(12)])
-        card.bind(pos=lambda *_: self._sync_rect(card), size=lambda *_: self._sync_rect(card))
-
-        # Image preview with decorative frame
-        self._img_container = BoxLayout(size_hint=(1, None), height=dp(260))
-        self.center_image = Image(source="", size_hint=(1, 1), allow_stretch=True, keep_ratio=True, opacity=1)
+    def _build_preview_card(self):
+        card = MDCard(orientation="vertical", padding=dp(18), size_hint=(1, None), height=dp(400), elevation=0, radius=[dp(22)])
+        card.spacing = dp(16)
+        # Image preview
+        self._img_container = MDBoxLayout(size_hint=(1, None), height=dp(280))
+        self.center_image = Image(source="", allow_stretch=True, keep_ratio=True)
         self._img_container.add_widget(self.center_image)
-        with self._img_container.canvas.before:
-            Color(*palette.PLACEHOLDER)
-            self._placeholder_rect = RoundedRectangle(pos=(self._img_container.x - dp(12), self._img_container.y - dp(12)), size=(self._img_container.width + dp(24), self._img_container.height + dp(24)), radius=[dp(14)])
-        self._img_container.bind(pos=self._update_placeholder_rect_preview, size=self._update_placeholder_rect_preview)
         card.add_widget(self._img_container)
-
-        # Submit button under the image
-        self.submit_under_preview = RoundedButton(text="Submit", size_hint=(None, None), width=dp(180), height=dp(48), bg_color=palette.PRIMARY, radius=palette.BUTTON_RADIUS)
-        self.submit_under_preview.bind(on_press=self.go_to_results)
-        # center horizontally using an inner BoxLayout with spacers
-        row = BoxLayout(orientation="horizontal", size_hint=(1, None), height=dp(48))
-        row.add_widget(Widget())
-        row.add_widget(self.submit_under_preview)
-        row.add_widget(Widget())
-        card.add_widget(row)
+        # Action buttons row
+        actions_row = MDBoxLayout(orientation="horizontal", size_hint=(1, None), height=dp(60), spacing=dp(20), padding=(0, 0))
+        self.clear_under_preview = MDRaisedButton(text="Clear")
+        self.clear_under_preview.bind(on_release=self.clear_image)
+        self.submit_under_preview = MDRaisedButton(text="Submit", md_bg_color=palette.PRIMARY)
+        self.submit_under_preview.bind(on_release=self.go_to_results)
+        actions_row.add_widget(self.clear_under_preview)
+        actions_row.add_widget(self.submit_under_preview)
+        # Hover: subtle overlay for clear, lighten for submit
+        self._apply_hover_to_clear(self.clear_under_preview)
+        self._apply_hover_to_primary_button(self.submit_under_preview)
+        card.add_widget(actions_row)
         return card
 
-    def _sync_rect(self, widget):
-        # Helper to keep rounded rect backgrounds aligned
-        if hasattr(widget, "_bg"):
-            widget._bg.pos = widget.pos
-            widget._bg.size = widget.size
-
-    def _update_placeholder_rect_preview(self, *_):
-        # Sync decorative preview frame
-        # Find the image container via submit_under_preview parent chain if needed
-        if hasattr(self, "_placeholder_rect") and self.preview_card in self.middle_container.children:
-            img_container = self._img_container
-            self._placeholder_rect.pos = (img_container.x - dp(12), img_container.y - dp(12))
-            self._placeholder_rect.size = (img_container.width + dp(24), img_container.height + dp(24))
+    # Legacy helpers removed (canvas rect sync no longer needed with MDCard)
 
     # --- View switching ---------------------------------------------------------
     def _show_robot_tip(self):
-        self.middle_container.clear_widgets()
-        self.middle_container.add_widget(self.robot_tip_card)
-        # Clear preview content
-        if hasattr(self, "center_image"):
-            self.center_image.source = ""
+        self.content_container.clear_widgets()
+        self.content_container.add_widget(self.robot_tip_card)
+        self.center_image.source = ""
 
     def _show_preview(self, file_path: str):
-        self.middle_container.clear_widgets()
-        self.middle_container.add_widget(self.preview_card)
+        self.content_container.clear_widgets()
+        self.content_container.add_widget(self.preview_card)
         self.center_image.source = file_path
+
+    # --- Hover helpers ---------------------------------------------------------
+    def _lighten(self, rgba, factor=0.12):
+        r, g, b, a = rgba
+        return (r + (1 - r) * factor, g + (1 - g) * factor, b + (1 - b) * factor, a)
+
+    def _apply_hover_to_primary_button(self, btn: MDRaisedButton):
+        normal = getattr(btn, "md_bg_color", palette.PRIMARY)
+        hover = self._lighten(normal, 0.14)
+
+        def on_enter(_w):
+            try:
+                btn.md_bg_color = hover
+            except Exception:
+                pass
+
+        def on_leave(_w):
+            try:
+                btn.md_bg_color = normal
+            except Exception:
+                pass
+
+        attach_hover(btn, on_enter, on_leave)
+
+    def _apply_hover_to_clear(self, btn: MDRaisedButton):
+        # Subtle translucent overlay on hover
+        normal = getattr(btn, "md_bg_color", (0, 0, 0, 0))
+        hover = (0, 0, 0, 0.06)
+
+        def on_enter(_w):
+            try:
+                btn.md_bg_color = hover
+            except Exception:
+                pass
+
+        def on_leave(_w):
+            try:
+                btn.md_bg_color = normal
+            except Exception:
+                pass
+
+        attach_hover(btn, on_enter, on_leave)
+
+    def _apply_hover_to_round(self, btn: RoundImageButton):
+        normal = getattr(btn, "bg_rgba", palette.PRIMARY)
+        hover = self._lighten(normal, 0.14)
+
+        def on_enter(_w):
+            try:
+                btn.set_bg_rgba(hover)
+            except Exception:
+                pass
+
+        def on_leave(_w):
+            try:
+                btn.set_bg_rgba(normal)
+            except Exception:
+                pass
+
+        attach_hover(btn, on_enter, on_leave)
+
+    def _apply_hover_to_toolbar(self, toolbar: TopBar):
+        # Apply hover to all action buttons in toolbar (e.g., settings)
+        if not hasattr(toolbar, "_actions_box"):
+            return
+        for child in toolbar._actions_box.children:
+            if isinstance(child, MDIconButton):
+                # Ensure we can control color directly
+                try:
+                    child.theme_text_color = "Custom"
+                except Exception:
+                    pass
+                normal_col = getattr(child, "text_color", (0.2, 0.2, 0.2, 1))
+                hover_col = palette.PRIMARY
+
+                def on_enter(_w, c=child, col=hover_col):
+                    try:
+                        c.text_color = col
+                    except Exception:
+                        pass
+
+                def on_leave(_w, c=child, col=normal_col):
+                    try:
+                        c.text_color = col
+                    except Exception:
+                        pass
+
+                attach_hover(child, on_enter, on_leave)
