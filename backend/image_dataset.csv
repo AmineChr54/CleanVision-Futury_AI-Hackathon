@@ -1,0 +1,35 @@
+image_path,task,score,justification
+data/val/0/PXL_20251107_212416283.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_212502107.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_212519882.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_212529803.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_212602656.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_212822825.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213011308.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213053548.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213134102.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213259287.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213445033.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213552546.MP.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213609328.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213627609.MP.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213747156.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_213936963.MP.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_214110089.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_214155897.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_214403324.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_214435215.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/0/PXL_20251107_214441117.jpg,Clean / clear the table surface,2,The table surface is spotless and free of any visible dirt or clutter.
+data/val/1/PXL_20251107_212054468.MP.jpg,Clean / clear the table surface,1,There are some crumbs and a slight smudge on the table surface, indicating it's not perfectly clean.
+data/val/1/PXL_20251107_212351292.MP.jpg,Clean / clear the table surface,1,There are some crumbs and a slight smudge on the table surface, indicating it's not perfectly clean.
+data/val/1/PXL_20251107_212912206.jpg,Clean / clear the table surface,1,There are some crumbs and a slight smudge on the table surface, indicating it's not perfectly clean.
+data/val/1/PXL_20251107_212953277.jpg,Clean / clear the table surface,1,There are some crumbs and a slight smudge on the table surface, indicating it's not perfectly clean.
+data/val/1/PXL_20251107_213820214.MP.jpg,Clean / clear the table surface,1,There are some crumbs and a slight smudge on the table surface, indicating it's not perfectly clean.
+data/val/2/PXL_20251107_212250548.MP.jpg,Clean / clear the table surface,0,The table surface is covered in crumbs, spills, and food debris, indicating it is very dirty.
+data/val/2/PXL_20251107_212446669.jpg,Clean / clear the table surface,0,The table surface is covered in crumbs, spills, and food debris, indicating it is very dirty.
+data/val/2/PXL_20251107_212916331.jpg,Clean / clear the table surface,0,The table surface is covered in crumbs, spills, and food debris, indicating it is very dirty.
+data/val/2/PXL_20251107_213033219.jpg,Clean / clear the table surface,0,The table surface is covered in crumbs, spills, and food debris, indicating it is very dirty.
+data/val/2/PXL_20251107_213213872.jpg,Clean / clear the table surface,0,The table surface is covered in crumbs, spills, and food debris, indicating it is very dirty.
+data/val/2/PXL_20251107_213603127.MP.jpg,Clean / clear the table surface,0,The table surface is covered in crumbs, spills, and food debris, indicating it is very dirty.
+data/val/2/PXL_20251107_213724770.jpg,Clean / clear the table surface,0,The table surface is covered in crumbs, spills, and food debris, indicating it is very dirty.
+data/val/2/PXL_20251107_213753813.jpg,Clean / clear the table surface,0,The table surface is covered in crumbs, spills, and food debris, indicating it is very dirty.
