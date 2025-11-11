@@ -1,7 +1,7 @@
 import json
 from PIL import Image
 import numpy as np
-from src.client import upload_file
+from src import client
 from src.maskrcnn_detector import MaskRCNNDetector
 from src.segmenter import SAM_Segmenter
 from src import config
@@ -56,7 +56,7 @@ def crop_and_save_segment(image_np, mask, box, padding=20):
     
     return temp_path
 
-def perform_deep_evaluation(gemini_client, detector, image_path):
+def perform_deep_evaluation(gemini_model, detector, image_path):
     """
     Performs a deep evaluation of an image by detecting, segmenting, and evaluating each object.
     """
@@ -68,7 +68,6 @@ def perform_deep_evaluation(gemini_client, detector, image_path):
     
     # 2. Initialize models
     sam = SAM_Segmenter()
-    gemini_model = gemini_client.get_model("gemini-pro-vision")
     
     overall_scores = []
     todo_list = []
@@ -86,7 +85,7 @@ def perform_deep_evaluation(gemini_client, detector, image_path):
         segmented_path = crop_and_save_segment(image_np, mask, box)
         
         # 6. Upload to Gemini and evaluate
-        uploaded_file = upload_file(segmented_path)
+        uploaded_file = client.upload_file(segmented_path)
         if not uploaded_file:
             print(f"Skipping evaluation for {class_name} due to upload failure.")
             continue
@@ -108,7 +107,7 @@ def perform_deep_evaluation(gemini_client, detector, image_path):
             print(f"Could not parse deep evaluation for {class_name}: {e}")
             
         # Clean up the uploaded file
-        gemini_client.delete_file(uploaded_file.name)
+        client.delete_file(uploaded_file.name)
 
     # 7. Calculate overall score
     overall_score = np.mean(overall_scores) if overall_scores else 0
@@ -117,17 +116,17 @@ def perform_deep_evaluation(gemini_client, detector, image_path):
 
 if __name__ == '__main__':
     # Example usage
-    from src.client import Gemini
     
     # Initialize clients and models
-    gemini_client = Gemini()
+    client.initialize_gemini()
+    gemini_model = client.get_gemini_model()
     detector = MaskRCNNDetector()
     
     # Path to an example image
     EXAMPLE_IMAGE_PATH = "path/to/your/image.jpg" # IMPORTANT: Replace with a valid image path
     
     # Run the deep evaluation
-    final_score, todos = perform_deep_evaluation(gemini_client, detector, EXAMPLE_IMAGE_PATH)
+    final_score, todos = perform_deep_evaluation(gemini_model, detector, EXAMPLE_IMAGE_PATH)
     
     # Print the results
     print("\n--- Deep Dive Evaluation Complete ---")

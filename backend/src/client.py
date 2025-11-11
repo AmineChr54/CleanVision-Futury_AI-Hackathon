@@ -1,4 +1,3 @@
-
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -44,3 +43,15 @@ def upload_file(file_path):
     except Exception as e:
         print(f"An error occurred during file upload: {e}")
         return None
+
+def delete_file(file_name):
+    """
+    Deletes a file from the Gemini API.
+    
+    Args:
+        file_name (str): The name of the file to delete.
+    """
+    try:
+        genai.delete_file(name=file_name)
+    except Exception as e:
+        print(f"An error occurred during file deletion: {e}")

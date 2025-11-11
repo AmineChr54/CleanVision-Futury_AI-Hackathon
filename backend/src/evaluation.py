@@ -1,7 +1,6 @@
-
 import json
 from PIL import Image
-from src.client import upload_file, get_gemini_model
+from src import client
 
 def get_evaluation_prompt():
     """
@@ -34,12 +33,15 @@ def perform_evaluation(model, image_path):
     prompt = get_evaluation_prompt()
     
     # Upload the image
-    uploaded_image = upload_file(image_path)
+    uploaded_image = client.upload_file(image_path)
     if not uploaded_image:
         return {"error": "Failed to upload image."}
         
     # Generate content with the image and prompt
     response = model.generate_content([prompt, uploaded_image])
+    
+    # Clean up the uploaded file
+    client.delete_file(uploaded_image.name)
     
     try:
         # Assuming the response is a JSON string
@@ -50,14 +52,12 @@ def perform_evaluation(model, image_path):
 
 if __name__ == '__main__':
     # This is an example of how to use the perform_evaluation function.
-    # You would need to have a 'config.py' with your API key or set it up in your environment.
     
     # Initialize Gemini
-    from src.client import initialize_gemini
-    initialize_gemini()
+    client.initialize_gemini()
     
     # Get the model
-    gemini_model = get_gemini_model('gemini-1.5-flash') # Use a model that supports image and text
+    gemini_model = get_gemini_model('gemini-2.5-pro') # Use a model that supports image and text
     
     # Path to an example image
     example_image_path = "path/to/your/image.jpg" # IMPORTANT: Replace with a valid image path

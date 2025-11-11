@@ -1,4 +1,3 @@
-
 import gradio as gr
 import numpy as np
 import os
@@ -11,7 +10,8 @@ from src import config
 
 class CleanCheckApp:
     def __init__(self):
-        self.gemini_client = client.Gemini(model=config.GEMINI_MODEL)
+        client.initialize_gemini()
+        self.gemini_model = client.get_gemini_model(model_name=config.GEMINI_MODEL)
         self.detector = maskrcnn_detector.MaskRCNNDetector()
         self.sam_segmenter = None  # Lazily load SAM Segmenter
         self.detection_results = None
@@ -43,7 +43,7 @@ class CleanCheckApp:
             return "Error saving image.", None, None
 
         try:
-            report = evaluation.perform_evaluation(self.gemini_client, img_path)
+            report = evaluation.perform_evaluation(self.gemini_model, img_path)
             overall_rating = report.get("overall_rating", "N/A")
             score = report.get("score", "N/A")
             justification = report.get("justification", "No justification provided.")
@@ -67,7 +67,7 @@ class CleanCheckApp:
             return "Error saving image."
 
         try:
-            overall_score, todo_list = deep_evaluation.perform_deep_evaluation(self.gemini_client, self.detector, img_path)
+            overall_score, todo_list = deep_evaluation.perform_deep_evaluation(self.gemini_model, self.detector, img_path)
 
             deep_dive_report = f"### Overall Score: {overall_score}/10\n"
             if todo_list:
