@@ -81,4 +81,4 @@ To start the CleanVision backend application, navigate to the project root direc
 python backend/app.py
 ```
 
-The application will launch a Gradio web interface. You can access it by opening the URL displayed in your terminal (e.g., `http://127.0.0.1:7860`).
+The application will launch a Gradio web interface. You can access it by opening the URL displayed in your terminal (for e.g., `http://127.0.0.1:7860`).
